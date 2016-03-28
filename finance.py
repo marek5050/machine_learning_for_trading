@@ -19,14 +19,15 @@ def symbol_to_path(symbol, base_dir="data"):
 
 def get_base_dataframe(dates):
     df1=pd.DataFrame(index=dates)
-    dfSPY=pd.read_csv(symbol_to_path("spy"),
-                      names=["date","sm1","open","high","low","close","volume"],
-                      usecols=["date","close"],
-                      index_col="date",
+    dfSPY=pd.read_csv("table_spy.csv",
+                      # names=["Date","Open","High","Low","Close","Volume"],
+                      dtype={'Close': np.float64},
+                      usecols=["Date","Close"],
+                      index_col="Date",
                       na_values=['nan'],
                       parse_dates=True)
     dfSPY=dfSPY.iloc[::-1]
-    dfSPY=dfSPY.rename(columns={'close':'spy'})
+    dfSPY=dfSPY.rename(columns={'Close':'SPY'})
     df1=df1.join(dfSPY,how='inner')
     return df1
 
@@ -34,13 +35,19 @@ def get_data(symbols,dates):
     df1=get_base_dataframe(dates)
     for symbol in symbols:
         df_temp=pd.read_csv(symbol_to_path(symbol),
-                          names=["date","sm1","open","high","low","close","volume"],
-                          usecols=["date","close"],
-                          index_col="date",
+                          # names=["Date","Open","High","Low","Close","Volume","Adj. Close","Adj. Volume"],
+                          # header=0,
+                          usecols=["Date","Close"],
+                          index_col="Date",
                           na_values=['nan'],
                           parse_dates=True)
-        df_temp = df_temp.rename(columns={'close':symbol})
+        df_temp=df_temp.iloc[::-1]
+        df_temp = df_temp.rename(columns={'Close':symbol})
         df1=df1.join(df_temp)
+
+    df1.ffill(inplace=True)
+    df1.bfill(inplace=True)
+    df1.fillna(0,inplace=True)
     return df1
 
 
@@ -105,34 +112,57 @@ def compute_daily_returns(df):
     return (df / df.shift(1))-1
 
 def compute_cumulative_returns(df):
-    return df.div(df.ix[0].values,axis="columns")-1
+    return df.div(df.ix[0],axis="columns")-1
+
+def make_scatter_plot(df,x,y):
+    ax=df.plot(kind='scatter',x=x, y=y)
+    beta_XOM,alpha_XOM = np.polyfit(df[x],df[y],1)
+    plt.plot(df[x],beta_XOM*df[x]+alpha_XOM,'-',color='r')
+
 
 if __name__ == "__main__":
-    start='2009-01-01'
-    end='2012-12-31'
+    start='2014-01-01'
+    end='2015-12-31'
     dates=pd.date_range(start,end)
-    df1=get_data([],dates)
+    df1=get_data(['IBM'],dates)
+    df_daily_1=compute_daily_returns(df1)
+    df_daily_1.ffill(inplace=True)
+    df_daily_1.bfill(inplace=True)
+
+    df2=get_data(['XOM'],dates)
+    df_daily_2=compute_daily_returns(df2)
+    df_daily_2.ffill(inplace=True)
+    df_daily_2.bfill(inplace=True)
+
+    df3=get_data(['GOOG'],dates)
+    df_daily_3=compute_daily_returns(df3)
+    df_daily_3.ffill(inplace=True)
+    df_daily_3.bfill(inplace=True)
+
     # mean = get_rolling_mean(df1,20)
     # std = get_rolling_std(df1,20)
     # upper_band,lower_band = get_bands(mean,std)
-    df_daily=compute_daily_returns(df1)
-    df_cum=compute_cumulative_returns(df1)
+    # df_cum=compute_cumulative_returns(df1)
+    make_scatter_plot(df_daily_1,"SPY","IBM")
+
+    make_scatter_plot(df_daily_2,"SPY","XOM")
+    make_scatter_plot(df_daily_3,"SPY","GOOG")
+
+    plt.show()
     # plot_data(df1,title="Closing")
     # plot_data(df_daily,title="Daily Returns")
     # plot_data(df_cum,title="Cummulative Returns")
-    mean= df_daily['spy'].mean()
-    std= df_daily['spy'].std()
-    print("MEAN: " , mean)
-    print("STD: ", std)
-    df_daily.hist()
-    plt.axvline(mean,color='w',linestyle='dashed',linewidth=2)
-    plt.axvline(-std,color='r',linestyle='dashed',linewidth=2)
-    plt.axvline(std,color='r',linestyle='dashed',linewidth=2)
-    plt.show()
+    # mean= df_daily['spy'].mean()
+    # std= df_daily['spy'].std()
+    # print("MEAN: " , mean)
+    # print("STD: ", std)
+    # df_daily.hist()
+    # plt.axvline(mean,color='w',linestyle='dashed',linewidth=2)
+    # plt.axvline(-std,color='r',linestyle='dashed',linewidth=2)
+    # plt.axvline(std,color='r',linestyle='dashed',linewidth=2)
+    # plt.show()
     # rolling_mean(df1)
     # plot_rolling(df1,mean,upper_band,lower_band)
-
-
     # df1=get_data(['ibm','aapl','msft','csco','goog'],dates)
     # df2= df1 / df1.ix[0]
     # plot_selected(df2,['spy','ibm','aapl','msft','csco','goog'],start,end)
