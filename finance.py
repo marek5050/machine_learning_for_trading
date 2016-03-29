@@ -169,11 +169,32 @@ def porfolio_return():
     port_val.plot()
     plt.show()
 
+def calculate_portfolio_return(symbols, allocs, start_val, dates):
+    df1=get_data(symbols,dates)
+    del(df1['SPY'])
 
+    df_norm=normalize(df1)
+    df_alloced=df_norm.mul(allocs,axis='columns')
+    pos_val=df_alloced*start_val
+    port_val=pos_val.sum(axis=1)
+    return port_val
 
 if __name__ == "__main__":
-    print("Hello")
-    # plot_data(df1,title="Closing")
+    start='2010-01-01'
+    end='2013-12-31'
+    dates=pd.date_range(start,end)
+    start_val=1000000
+
+    df_total=get_data([],dates)
+    del(df_total['SPY'])
+
+    symbols=['MSFT','GOOGL',"CSCO","FB"]
+    allocs=[0.4,0.2,0.2,0.2]
+    df_total[", ".join(symbols)]=calculate_portfolio_return(symbols,allocs, start_val,dates)
+
+    df_total.plot()
+    plt.title("Portfolio return",fontsize=15)
+    plt.show()    # plot_data(df1,title="Closing")
     # plot_data(df_daily,title="Daily Returns")
     # plot_data(df_cum,title="Cummulative Returns")
     # mean= df_daily['spy'].mean()
