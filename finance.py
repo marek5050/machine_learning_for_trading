@@ -114,13 +114,15 @@ def compute_daily_returns(df):
 def compute_cumulative_returns(df):
     return df.div(df.ix[0],axis="columns")-1
 
+def normalize(df):
+    return df.div(df.ix[0],axis="columns")
+
 def make_scatter_plot(df,x,y):
     ax=df.plot(kind='scatter',x=x, y=y)
     beta_XOM,alpha_XOM = np.polyfit(df[x],df[y],1)
     plt.plot(df[x],beta_XOM*df[x]+alpha_XOM,'-',color='r')
 
-
-if __name__ == "__main__":
+def single_stock():
     start='2014-01-01'
     end='2015-12-31'
     dates=pd.date_range(start,end)
@@ -149,6 +151,28 @@ if __name__ == "__main__":
     make_scatter_plot(df_daily_3,"SPY","GOOG")
 
     plt.show()
+
+def porfolio_return():
+    start='2010-01-01'
+    end='2013-12-31'
+    dates=pd.date_range(start,end)
+    symbols=['IBM','GOOGL','AAPL']
+    allocs=[0.4,0.4,0.2]
+    start_val=1000000
+    df1=get_data(symbols,dates)
+
+    del(df1['SPY'])
+    df_norm=normalize(df1)
+    df_alloced=df_norm.mul(allocs,axis='columns')
+    pos_val=df_alloced*start_val
+    port_val=pos_val.sum(axis=1)
+    port_val.plot()
+    plt.show()
+
+
+
+if __name__ == "__main__":
+    print("Hello")
     # plot_data(df1,title="Closing")
     # plot_data(df_daily,title="Daily Returns")
     # plot_data(df_cum,title="Cummulative Returns")
